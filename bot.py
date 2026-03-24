@@ -8,10 +8,38 @@ from zoneinfo import ZoneInfo
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 
-API_ID = int(os.environ["API_ID"])
-API_HASH = os.environ["API_HASH"]
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-CHANNEL_ID = int(os.environ["CHANNEL_ID"])
+
+def load_dotenv(path: str = ".env") -> None:
+    """Минимальная загрузка .env без внешних зависимостей."""
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+
+def get_required_env(name: str) -> str:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        raise RuntimeError(
+            f"Не найдена переменная окружения {name}. "
+            f"Создайте .env с {name}=... или экспортируйте переменную перед запуском."
+        )
+    return value
+
+
+load_dotenv()
+
+API_ID = int(get_required_env("API_ID"))
+API_HASH = get_required_env("API_HASH")
+BOT_TOKEN = get_required_env("BOT_TOKEN")
+CHANNEL_ID = int(get_required_env("CHANNEL_ID"))
 TIMEZONE = os.getenv("TIMEZONE", "Europe/Moscow")
 PAGE_SIZE = int(os.getenv("PAGE_SIZE", "5"))
 
