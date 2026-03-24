@@ -3,7 +3,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
@@ -49,7 +49,14 @@ ADMIN_IDS = {int(x.strip()) for x in _admins_raw.split(",") if x.strip()}
 DB_PATH = os.getenv("DB_PATH", "events.db")
 
 app = Client("reminder_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-tz = ZoneInfo(TIMEZONE)
+try:
+    tz = ZoneInfo(TIMEZONE)
+except ZoneInfoNotFoundError:
+    print(
+        f"[WARN] Таймзона '{TIMEZONE}' не найдена. "
+        "Использую UTC. Установите пакет 'tzdata' (pip install tzdata)."
+    )
+    tz = timezone.utc
 
 
 @dataclass

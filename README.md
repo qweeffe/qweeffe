@@ -18,6 +18,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Для Termux это особенно важно: `tzdata` нужен для работы `ZoneInfo`.
 
 ## Настройка
 1. Скопируйте `.env.example` в `.env` и заполните значения.
@@ -38,6 +39,14 @@ set +a
 
 Неправильно:
 - `os.environ[\"38903874\"]` ← это ищет переменную с именем `38903874`, которой обычно нет.
+
+### Ошибка `ZoneInfoNotFoundError` (`No module named 'tzdata'`)
+Если видите такую ошибку, значит в окружении нет базы таймзон.
+Решение:
+```bash
+pip install tzdata
+```
+После этого `TIMEZONE=Europe/Moscow` будет работать корректно.
 
 ## Запуск
 ```bash
