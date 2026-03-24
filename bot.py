@@ -144,6 +144,16 @@ def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
 
+def access_denied_text(user_id: int) -> str:
+    admins = ", ".join(str(x) for x in sorted(ADMIN_IDS)) or "<empty>"
+    return (
+        "⛔ У вас нет доступа к управлению ботом.\n"
+        f"Ваш user_id: {user_id}\n"
+        f"ADMIN_IDS: {admins}\n\n"
+        "Добавьте ваш user_id в ADMIN_IDS или очистите ADMIN_IDS в .env"
+    )
+
+
 def save_user_state(user_id: int, state: str, payload: str = "") -> None:
     conn = db()
     conn.execute(
@@ -300,7 +310,7 @@ def confirm_keyboard(event_id: int) -> InlineKeyboardMarkup:
 @app.on_message(filters.command("start") & filters.private)
 async def cmd_start(_: Client, message: Message) -> None:
     if not is_admin(message.from_user.id):
-        await message.reply("⛔ У вас нет доступа.")
+        await message.reply(access_denied_text(message.from_user.id))
         return
 
     await message.reply(
@@ -315,6 +325,7 @@ async def cmd_start(_: Client, message: Message) -> None:
 @app.on_message(filters.command("events") & filters.private)
 async def cmd_events(_: Client, message: Message) -> None:
     if not is_admin(message.from_user.id):
+        await message.reply(access_denied_text(message.from_user.id))
         return
     await message.reply("Список событий:", reply_markup=build_list_keyboard(0))
 
@@ -322,6 +333,7 @@ async def cmd_events(_: Client, message: Message) -> None:
 @app.on_message(filters.command("add") & filters.private)
 async def cmd_add(_: Client, message: Message) -> None:
     if not is_admin(message.from_user.id):
+        await message.reply(access_denied_text(message.from_user.id))
         return
     text = message.text or ""
     payload = text.removeprefix("/add").strip()
@@ -342,6 +354,8 @@ async def cmd_add(_: Client, message: Message) -> None:
 @app.on_message(filters.private & filters.text)
 async def text_state_handler(_: Client, message: Message) -> None:
     if not message.from_user or not is_admin(message.from_user.id):
+        if message.from_user and message.text and message.text.startswith("/"):
+            await message.reply(access_denied_text(message.from_user.id))
         return
 
     state = get_user_state(message.from_user.id)
@@ -540,6 +554,7 @@ async def main() -> None:
 
     asyncio.create_task(reminder_worker())
     print(f"Bot started: @{me.username} (id={me.id})")
+    print(f"ADMIN_IDS={sorted(ADMIN_IDS) if ADMIN_IDS else 'not set (open access)'}")
     await asyncio.Event().wait()
 
 
