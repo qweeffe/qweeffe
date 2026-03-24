@@ -307,8 +307,7 @@ def confirm_keyboard(event_id: int) -> InlineKeyboardMarkup:
     )
 
 
-@app.on_message(filters.command("start") & filters.private)
-async def cmd_start(_: Client, message: Message) -> None:
+async def cmd_start(message: Message) -> None:
     if not is_admin(message.from_user.id):
         await message.reply(access_denied_text(message.from_user.id))
         return
@@ -322,21 +321,22 @@ async def cmd_start(_: Client, message: Message) -> None:
     )
 
 
-@app.on_message(filters.command("events") & filters.private)
-async def cmd_events(_: Client, message: Message) -> None:
+async def cmd_events(message: Message) -> None:
     if not is_admin(message.from_user.id):
         await message.reply(access_denied_text(message.from_user.id))
         return
     await message.reply("Список событий:", reply_markup=build_list_keyboard(0))
 
 
-@app.on_message(filters.command("add") & filters.private)
-async def cmd_add(_: Client, message: Message) -> None:
+async def cmd_add(message: Message, payload_override: str | None = None) -> None:
     if not is_admin(message.from_user.id):
         await message.reply(access_denied_text(message.from_user.id))
         return
-    text = message.text or ""
-    payload = text.removeprefix("/add").strip()
+    if payload_override is None:
+        text = message.text or ""
+        payload = text.removeprefix("/add").strip()
+    else:
+        payload = payload_override.strip()
     if "|" not in payload:
         await message.reply("Формат: /add Название | HH:MM")
         return
@@ -351,12 +351,33 @@ async def cmd_add(_: Client, message: Message) -> None:
     await message.reply(f"✅ Добавлено: {name} ({time_part})")
 
 
+def parse_command_text(text: str) -> tuple[str, str] | None:
+    if not text.startswith("/"):
+        return None
+    first, _, rest = text.partition(" ")
+    cmd = first[1:].split("@", 1)[0].lower().strip()
+    return cmd, rest.strip()
+
+
 @app.on_message(filters.private & filters.text)
 async def text_state_handler(_: Client, message: Message) -> None:
     if not message.from_user or not is_admin(message.from_user.id):
         if message.from_user and message.text and message.text.startswith("/"):
             await message.reply(access_denied_text(message.from_user.id))
         return
+
+    parsed = parse_command_text(message.text or "")
+    if parsed:
+        cmd, tail = parsed
+        if cmd == "start":
+            await cmd_start(message)
+            return
+        if cmd == "events":
+            await cmd_events(message)
+            return
+        if cmd == "add":
+            await cmd_add(message, payload_override=tail)
+            return
 
     state = get_user_state(message.from_user.id)
     if not state:
