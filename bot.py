@@ -50,7 +50,14 @@ ADMIN_IDS = {int(x.strip()) for x in _admins_raw.split(",") if x.strip()}
 DB_PATH = os.getenv("DB_PATH", "events.db")
 SESSION_NAME = os.getenv("SESSION_NAME", "reminder_bot")
 
-app = Client(SESSION_NAME, api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client(
+    SESSION_NAME,
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
+    no_updates=False,
+    workers=8,
+)
 try:
     tz = ZoneInfo(TIMEZONE)
 except ZoneInfoNotFoundError:
