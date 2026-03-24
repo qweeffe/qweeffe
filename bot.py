@@ -1,4 +1,5 @@
 import asyncio
+import glob
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -47,8 +48,9 @@ _admins_raw = os.getenv("ADMIN_IDS", "")
 ADMIN_IDS = {int(x.strip()) for x in _admins_raw.split(",") if x.strip()}
 
 DB_PATH = os.getenv("DB_PATH", "events.db")
+SESSION_NAME = os.getenv("SESSION_NAME", "reminder_bot")
 
-app = Client("reminder_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client(SESSION_NAME, api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 try:
     tz = ZoneInfo(TIMEZONE)
 except ZoneInfoNotFoundError:
@@ -526,8 +528,18 @@ async def reminder_worker() -> None:
 async def main() -> None:
     init_db()
     await app.start()
+    me = await app.get_me()
+    if not me.is_bot:
+        await app.stop()
+        session_pattern = f"{SESSION_NAME}.session*"
+        session_files = ", ".join(sorted(glob.glob(session_pattern))) or session_pattern
+        raise RuntimeError(
+            "Pyrogram запустился как пользователь, а не как бот. "
+            f"Удалите файлы сессии ({session_files}) и запустите снова с BOT_TOKEN."
+        )
+
     asyncio.create_task(reminder_worker())
-    print("Bot started")
+    print(f"Bot started: @{me.username} (id={me.id})")
     await asyncio.Event().wait()
 
 
